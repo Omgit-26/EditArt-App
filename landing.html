@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>EditArt - Welcome</title>
+    <style>
+        :root { --bg-color: #050505; --text-main: #ffffff; --text-muted: #888888; --warm-white: #fbf8f3; --warm-hover: #e6e2da; }
+        body { background: var(--bg-color); color: var(--text-main); font-family: 'Inter', system-ui, sans-serif; margin: 0; height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center; overflow: hidden; }
+        .fade-in { opacity: 0; animation: fadeIn 1.5s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        h1 { font-size: 80px; font-weight: 100; letter-spacing: 10px; margin: 0; text-transform: uppercase; }
+        p { color: var(--text-muted); font-size: 14px; letter-spacing: 2px; margin-top: 20px; margin-bottom: 50px; text-transform: uppercase; }
+        .btn-start { background: var(--warm-white); color: #000; padding: 18px 60px; text-decoration: none; font-weight: bold; font-size: 14px; letter-spacing: 2px; text-transform: uppercase; border-radius: 2px; transition: all 0.3s ease; display: inline-block; }
+        .btn-start:hover { background: var(--warm-hover); transform: scale(1.05); box-shadow: 0 0 30px rgba(251, 248, 243, 0.2); }
+        .footer { position: absolute; bottom: 30px; font-size: 10px; color: #333; letter-spacing: 1px; }
+    </style>
+</head>
+<body>
+    <div class="fade-in">
+        <h1>EditArt</h1>
+        <p>The Future of Digital Imaging</p>
+        <a href="{{ url_for('editor') }}" class="btn-start">Get Started</a>
+    </div>
+    <div class="footer">SECURE • PRIVATE • IN-MEMORY PROCESSING</div>
+</body>
+</html>

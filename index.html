@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>EditArt Studio</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" rel="stylesheet">
+    <style>
+       
+        :root { --bg-color: #050505; --panel-bg: #111111; --text-main: #ffffff; --text-muted: #888888; --border: #333333; --warm-white: #fbf8f3; }
+        body { background: var(--bg-color); color: var(--text-main); font-family: 'Inter', sans-serif; margin: 0; height: 100vh; overflow: hidden; display: flex; }
+        
+       
+        .center-screen { flex: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+        .box { border: 1px solid var(--border); padding: 50px; text-align: center; background: var(--panel-bg); width: 420px; box-shadow: 0 30px 60px rgba(0,0,0,0.3); }
+        h1 { font-weight: 300; letter-spacing: 4px; margin-bottom: 20px; text-transform: uppercase; }
+        
+        
+        .btn-main { background: var(--warm-white); color: #000; padding: 15px 30px; cursor: pointer; font-weight: 700; border: none; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; text-decoration: none; display: inline-block; margin: 10px; width: 100%; box-sizing: border-box; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-muted); padding: 14px 30px; cursor: pointer; font-weight: 700; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; display: inline-block; margin: 10px; width: 100%; box-sizing: border-box; transition: 0.3s; }
+        .btn-outline:hover { border-color: var(--warm-white); color: var(--text-main); }
+        input[type="file"] { display: none; }
+
+       
+        .select-layout { background: var(--bg-color); color: var(--text-main); border: 1px solid var(--border); padding: 10px; width: 100%; margin-bottom: 10px; text-transform: uppercase; font-size: 11px; letter-spacing: 1px; outline: none; }
+
+        
+        .sidebar { width: 320px; background: var(--panel-bg); border-right: 1px solid var(--border); padding: 30px; display: flex; flex-direction: column; z-index: 10; position: relative; }
+        .menu-panel { display: none; animation: fadeIn 0.3s ease; }
+        .menu-panel.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+        
+        .btn-menu { width: 100%; padding: 18px 0; background: transparent; border:none; border-bottom: 1px solid var(--border); color: var(--text-main); text-align: left; text-transform: uppercase; letter-spacing: 2px; cursor: pointer; transition: 0.3s; font-size: 11px; }
+        .btn-menu:hover { color: var(--warm-white); padding-left: 10px; }
+        .btn-back { color: var(--text-muted); background: none; border: none; cursor: pointer; margin-bottom: 30px; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
+
+        
+        .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 25px; }
+        .filter-btn { background: transparent; border: 1px solid var(--border); color: var(--text-muted); padding: 12px; cursor: pointer; font-size: 10px; text-transform: uppercase; }
+        .filter-btn.active { background: var(--warm-white); color: black; border-color: var(--warm-white); font-weight: bold; }
+        .slider-container { margin-bottom: 25px; }
+        .slider-label { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted); margin-bottom: 10px; letter-spacing: 1px; }
+        input[type="range"] { width: 100%; accent-color: var(--warm-white); background: var(--border); height: 2px; outline: none; }
+        
+       
+        .canvas { flex: 1; background: var(--bg-color); display: flex; align-items: center; justify-content: center; position: relative; }
+        .canvas img { max-width: 90%; max-height: 90%; box-shadow: 0 20px 50px rgba(0,0,0,0.5); } 
+        .save-bar { position: absolute; bottom: 40px; right: 40px; z-index: 5; }
+
+       
+        #download-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 100; display: none; align-items: center; justify-content: center; flex-direction: column; }
+        
+        
+        .preview-area { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 20px; margin-top: 10px; }
+        .thumb { width: 60px; height: 60px; object-fit: cover; border: 1px solid var(--border); border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+    <div id="download-overlay">
+        <h2 style="font-weight: 300; letter-spacing: 2px; color: white;">DOWNLOAD STARTED</h2>
+        <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 30px;">Your file is being processed securely.</p>
+        <a href="{{ url_for('index') }}" class="btn-main" style="width: auto;">EDIT NEW PHOTO</a>
+        <br>
+        <button onclick="document.getElementById('download-overlay').style.display='none'" style="background:none; border:none; color: var(--text-muted); font-size: 10px; cursor: pointer; text-decoration: underline;">CONTINUE EDITING</button>
+    </div>
+
+    {% if state == 'upload' %}
+    <div class="center-screen">
+        <div class="box">
+            <h1>EditArt</h1>
+            <p style="color: var(--text-muted); font-size: 11px; letter-spacing: 1px; margin-bottom: 30px;">SECURE EDITOR SUITE</p>
+            
+            <form method="post" enctype="multipart/form-data" id="mainForm">
+                
+                <div style="margin-bottom: 30px; border-bottom: 1px solid var(--border); padding-bottom: 30px;">
+                    <label for="file_single" class="btn-main">Edit Single Photo</label>
+                    <input type="file" name="file" id="file_single" onchange="this.form.submit()">
+                </div>
+
+                <div style="text-align: left;">
+                    <span style="font-size: 10px; color: var(--text-muted); letter-spacing: 1px;">COLLAGE CREATOR</span>
+                    
+                    <select name="layout" class="select-layout" style="margin-top: 5px;">
+                        <option value="grid">Grid Layout (Default)</option>
+                        <option value="horizontal">Side by Side (Horizontal)</option>
+                        <option value="vertical">Stack (Vertical)</option>
+                    </select>
+
+                    <div id="collage-previews" class="preview-area"></div>
+                    
+                    <div style="display: flex; gap: 10px;">
+                        <button type="button" class="btn-outline" onclick="document.getElementById('file_adder').click()">+ Add Image</button>
+                        <button type="button" class="btn-outline" onclick="clearCollage()" style="width: auto;">Clear</button>
+                    </div>
+                    
+                    <input type="file" id="file_adder" onchange="addImages(this)" multiple>
+                    <input type="file" name="files[]" id="file_collage" multiple>
+                    <button type="button" class="btn-main" onclick="submitCollage()" style="margin-top: 15px;">GENERATE COLLAGE</button>
+                </div>
+
+                <input type="hidden" name="mode" id="mode" value="edit">
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const dt = new DataTransfer();
+
+        function addImages(input) {
+            for (let i = 0; i < input.files.length; i++) {
+                const file = input.files[i];
+                dt.items.add(file); 
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.className = 'thumb';
+                    document.getElementById('collage-previews').appendChild(img);
+                }
+                reader.readAsDataURL(file);
+            }
+            document.getElementById('file_collage').files = dt.files;
+            input.value = ''; 
+        }
+
+        function clearCollage() {
+            dt.items.clear();
+            document.getElementById('file_collage').files = dt.files;
+            document.getElementById('collage-previews').innerHTML = '';
+        }
+
+        function submitCollage() {
+            if (dt.files.length < 2) {
+                alert("Please add at least 2 images for a collage.");
+                return;
+            }
+            document.getElementById('mode').value = 'collage';
+            document.getElementById('mainForm').submit();
+        }
+    </script>
+
+    {% elif state == 'edit' %}
+    <div class="sidebar">
+        <a href="{{ url_for('index') }}" style="position: absolute; top: 15px; right: 20px; color: var(--text-muted); text-decoration: none; font-size: 10px; border: 1px solid var(--border); padding: 5px 10px;">NEW &times;</a>
+
+        <div id="menu-main" class="menu-panel active">
+            <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 20px; letter-spacing: 2px;">TOOLS</div>
+            
+            <button class="btn-menu" id="btn-layouts" onclick="switchMenu('menu-layouts')" style="display:none;">Layouts <span>&rarr;</span></button>
+            <button class="btn-menu" onclick="switchMenu('menu-filters')">Filters & Light <span>&rarr;</span></button>
+            <button class="btn-menu" onclick="switchMenu('menu-adjust')">Adjustments <span>&rarr;</span></button>
+            <button class="btn-menu" onclick="switchMenu('menu-finish')">Finishing & Size <span>&rarr;</span></button>
+        </div>
+
+        <div id="menu-layouts" class="menu-panel">
+            <button class="btn-back" onclick="switchMenu('menu-main')">&larr; Back</button>
+            <div class="slider-label">SELECT LAYOUT</div>
+            <div class="filter-grid">
+                <button class="filter-btn active" onclick="setLayout('grid', this)">Grid</button>
+                <button class="filter-btn" onclick="setLayout('horizontal', this)">Side by Side</button>
+                <button class="filter-btn" onclick="setLayout('vertical', this)">Vertical Stack</button>
+            </div>
+        </div>
+
+        <div id="menu-filters" class="menu-panel">
+            <button class="btn-back" onclick="switchMenu('menu-main')">&larr; Back</button>
+            <div class="filter-grid">
+                <button class="filter-btn active" onclick="setFilter('original', this)">Normal</button>
+                <button class="filter-btn" onclick="setFilter('emerald', this)">Emerald</button>
+                <button class="filter-btn" onclick="setFilter('warm', this)">Warm</button>
+                <button class="filter-btn" onclick="setFilter('cool', this)">Cool</button>
+                <button class="filter-btn" onclick="setFilter('vivid', this)">Vivid</button>
+                <button class="filter-btn" onclick="setFilter('bw', this)">B&W</button>
+            </div>
+            <div class="slider-container"><div class="slider-label"><span>INTENSITY</span></div><input type="range" id="intensity" min="0" max="2" step="0.1" value="1" oninput="updateLivePreview()"></div>
+            <hr style="border:0; border-top:1px solid var(--border); margin:20px 0;">
+            <div class="slider-container"><div class="slider-label"><span>BRIGHTNESS</span></div><input type="range" id="brightness" min="0.5" max="1.5" step="0.05" value="1" oninput="updateLivePreview()"></div>
+            <div class="slider-container"><div class="slider-label"><span>CONTRAST</span></div><input type="range" id="contrast" min="0.5" max="1.5" step="0.05" value="1" oninput="updateLivePreview()"></div>
+        </div>
+
+        <div id="menu-adjust" class="menu-panel">
+            <button class="btn-back" onclick="switchMenu('menu-main')">&larr; Back</button>
+            <div class="slider-label" style="margin-bottom: 20px;">GEOMETRY</div>
+            <button class="btn-menu" onclick="rotateImage()">Rotate 90° <span>&#x21bb;</span></button>
+            <button class="btn-menu" id="cropBtn" onclick="toggleCrop()">Crop Tool <span>&#x29C4;</span></button>
+        </div>
+
+        <div id="menu-finish" class="menu-panel">
+            <button class="btn-back" onclick="switchMenu('menu-main')">&larr; Back</button>
+            <div class="slider-label">EXPORT SETTINGS</div>
+            <br>
+            <div class="slider-container">
+                <div class="slider-label"><span>COMPRESSION QUALITY</span><span id="val-quality">95%</span></div>
+                <input type="range" id="quality" min="10" max="100" step="5" value="95" oninput="document.getElementById('val-quality').innerText = this.value + '%'">
+            </div>
+            <hr style="border:0; border-top:1px solid var(--border); margin:20px 0;">
+            <label style="display: flex; align-items: center; font-size: 12px; margin-bottom: 20px; color: var(--text-main);">
+                <input type="checkbox" id="portrait" onchange="updateLivePreview()" style="margin-right: 10px;"> Portrait Vignette
+            </label>
+            <input type="text" id="watermark" placeholder="Watermark Text..." oninput="updateLivePreview()" style="width: 100%; background: transparent; border: 1px solid var(--border); padding: 12px; color: white; font-family: monospace;">
+        </div>
+    </div>
+
+    <div class="canvas">
+        <img id="image" src="data:image/jpeg;base64,{{ image_b64 }}">
+        <form action="{{ url_for('process_final') }}" method="POST" id="finalForm" class="save-bar">
+            <input type="hidden" name="edit_data" id="editData">
+            <input type="hidden" name="original_b64" value="{{ image_b64 }}">
+            <button type="button" class="btn-main" onclick="submitEdit()">SAVE & DOWNLOAD</button>
+        </form>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
+    <script>
+        {% if is_collage %}
+        document.getElementById('btn-layouts').style.display = 'block';
+        {% endif %}
+
+        function switchMenu(menuId) { document.querySelectorAll('.menu-panel').forEach(el => el.classList.remove('active')); document.getElementById(menuId).classList.add('active'); }
+        
+        let currentFilter = 'original'; 
+        let currentLayout = 'grid'; 
+        let rotation = 0; 
+        let cropper = null; 
+        const img = document.getElementById('image');
+        
+        function updateLivePreview() {
+            if(!img) return;
+            const b = document.getElementById('brightness').value;
+            const c = document.getElementById('contrast').value;
+            const i = document.getElementById('intensity').value;
+            let f = `brightness(${b}) contrast(${c}) `;
+            if (currentFilter === 'emerald') f += `sepia(${0.3*i}) hue-rotate(80deg) saturate(${1+0.5*i})`; 
+            else if (currentFilter === 'warm') f += `sepia(${0.4*i}) saturate(${1+0.2*i})`;
+            else if (currentFilter === 'cool') f += `hue-rotate(180deg) sepia(${0.2*i})`;
+            else if (currentFilter === 'vivid') f += `saturate(${1+1*i})`;
+            else if (currentFilter === 'bw') f += `grayscale(${1*i})`;
+            if (!cropper) { img.style.filter = f; img.style.transform = `rotate(${rotation}deg)`; }
+        }
+
+        function setFilter(name, btn) { currentFilter = name; document.querySelectorAll('#menu-filters .filter-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); updateLivePreview(); }
+        
+        function setLayout(name, btn) {
+            currentLayout = name;
+            document.querySelectorAll('#menu-layouts .filter-btn').forEach(b => b.classList.remove('active')); 
+            btn.classList.add('active');
+            alert("Layout selected! Click 'Save & Download' to apply layout.");
+        }
+
+        function rotateImage() { rotation += 90; updateLivePreview(); if(cropper) cropper.rotate(90); }
+        function toggleCrop() {
+            if (cropper) { cropper.destroy(); cropper = null; document.getElementById('cropBtn').style.color = "var(--text-main)"; updateLivePreview(); } 
+            else { img.style.filter = "none"; cropper = new Cropper(img, { viewMode: 1 }); document.getElementById('cropBtn').style.color = "var(--warm-white)"; }
+        }
+
+        function submitEdit() {
+            const data = {
+                filter: currentFilter, intensity: document.getElementById('intensity').value, brightness: document.getElementById('brightness').value, contrast: document.getElementById('contrast').value,
+                rotate: rotation, portrait: document.getElementById('portrait').checked, watermark_text: document.getElementById('watermark').value, 
+                crop: cropper ? cropper.getData() : null, quality: document.getElementById('quality').value,
+                layout: currentLayout
+            };
+            document.getElementById('editData').value = JSON.stringify(data);
+            document.getElementById('finalForm').submit();
+            
+            setTimeout(() => {
+                document.getElementById('download-overlay').style.display = 'flex';
+            }, 1000);
+        }
+    </script>
+    {% endif %}
+</body>
+</html>
